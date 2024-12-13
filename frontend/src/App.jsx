@@ -10,9 +10,11 @@ import SignUpPage from "./pages/SignUpPage";
 import { axiosInstance } from "./lib/axios";
 import { useAuthStore } from "./store/useAuthStore";
 import { Loader } from "lucide-react";
+import { useThemeStore } from "./store/useThemeStore";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+const {theme} = useThemeStore();
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -27,7 +29,7 @@ const App = () => {
     );
   }
   return (
-    <div>
+    <div data-theme={theme}>
       <Navbar />
       <Routes>
         <Route

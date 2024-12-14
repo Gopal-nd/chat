@@ -1,21 +1,23 @@
 import {create} from 'zustand'
 import { axiosInstance } from '../lib/axios'
 import toast from 'react-hot-toast';
+import { connect,io } from 'socket.io-client';
 
-
-export const useAuthStore = create((set)=>({
+const BASE_URL = "http://localhost:5001";
+export const useAuthStore = create((set,get)=>({
 authUser:null,
 isSigningUp:false,
 isLoggingIn:false,
 isUpdatingProfile:false,
-
+socket:null,
 isCheckingAuth :true,
 onlineUsers:[],
 
 checkAuth: async()=>{
 try {
  const res = await axiosInstance.get("/auth/check");
-set({authUser:res.data})
+set({authUser:res.data});
+get().connectSocket();
 } catch (error) {
 console.log("Error in the authUser "+ error)
 set({authUser:null})
@@ -30,7 +32,7 @@ signup: async (data) =>{
 set({isSigningUp:true});
 try {
  const res = await axiosInstance.post("/auth/signup",data);set({authUser:res.data});
-console.log(" signup data",res);
+get().connectSocket();
 toast.success("Account created successfully");
 } catch (error) {
  console.log("error in the signin :", error);
@@ -45,6 +47,7 @@ set({isSigningUp:false})
     try {
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
+      get().connectSocket();
       toast.success("Logged in successfully");
     } catch (error) {
       toast.error(error.response.data.message);
@@ -57,6 +60,7 @@ logout :async () =>{
 try {
   await axiosInstance.post("/auth/logout");
 set({authUser:null});
+get().disconnectSocket();
 toast.success("Logged out successfully");
 } catch (error) {
   toast.error(error.response.data.message);
@@ -77,4 +81,22 @@ updateProfile: async (data) => {
     }
   },
 
+connectSocket:()=>{
+const {authUser} = get();
+if(!authUser || get().socket?.connected )return;
+const socket = io(BASE_URL,{
+query:{
+userId:authUser._id,
+},
+})
+socket.connect()
+set({socket:socket});
+
+socket.on("getOnlineUsers",(usersIds)=>{
+set({onlineUsers:usersIds});
+})
+},
+disconnectSocket:()=>{
+if(get().socket?.connected) get().socket.disconnect();
+}
 }))
